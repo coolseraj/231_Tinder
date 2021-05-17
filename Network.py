@@ -188,9 +188,9 @@ if __name__ == '__main__':
 
     #imshow(out, title=[class_names[x] for x in classes])
 
-    model_ft = models.resnet18(pretrained=False)
+    model_ft = models.resnet18(pretrained=True)
     #Freezes the other layers
-    freeze_layers = True
+    freeze_layers = False
     if freeze_layers:
         for param in model_ft.parameters():
             param.requires_grad = False
