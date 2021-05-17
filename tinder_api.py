@@ -7,6 +7,11 @@ import requests
 import numpy as np
 import urllib.request
 import os
+from os import listdir
+from os.path import isfile, join
+import xlsxwriter
+
+
 
 get_headers = {
     'app_version': '6.9.4',
@@ -57,6 +62,13 @@ def get_recommendations():
     '''
     try:
         r = requests.get('https://api.gotinder.com/user/recs', headers=headers)
+        return r.json()
+    except requests.exceptions.RequestException as e:
+        print("Something went wrong with getting recomendations:", e)
+
+def likes_sent():
+    try:
+        r = requests.get('https://api.gotinder.com/v2/my-likes?locale=en', headers=headers)
         return r.json()
     except requests.exceptions.RequestException as e:
         print("Something went wrong with getting recomendations:", e)
@@ -376,6 +388,8 @@ def process_matches(matches):
         person_med_photos = []
         person_large_photos = []
         for j in range(len(person['photos'])):
+            if len(person['photos'][j]['processedFiles']) != 4:
+                continue
             person_xsmall_photos.append(person['photos'][j]['processedFiles'][3]['url'])
             person_small_photos.append(person['photos'][j]['processedFiles'][2]['url'])
             person_med_photos.append(person['photos'][j]['processedFiles'][1]['url'])
@@ -388,7 +402,7 @@ def process_matches(matches):
 
 def write_rec_data(ids, bios, xs, s, m, l):
     """Saves the info"""
-    foldername = "Data/"
+    foldername = "RawData/"
     for i in range(len(ids)):
         id = ids[i]
         img_urls = s[i]
@@ -398,14 +412,54 @@ def write_rec_data(ids, bios, xs, s, m, l):
             fullfilename = os.path.join(foldername, img_name)
             urllib.request.urlretrieve(img_url, fullfilename)
 
-like_prob = 0.3 #Probability of swiping right
+def write_match_data(match_ids, match_imgs):
+    """Writes the matches to an excel file.
+    Will also pics to training data that haven't been swiped on."""
+    mypath = 'RawData'
+    foldername = "RawData/"
+    filenames = [f for f in listdir(mypath) if isfile(join(mypath, f))]
 
+    # Instantiate excel sheet
+    workbook = xlsxwriter.Workbook('labels.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.write('A1', 'Img_names')
+
+    count = 2
+    for i in range(len(match_ids)):
+        match_id = match_ids[i]
+        for j in range(len(match_imgs[i])):
+            match_img_name = match_id + '_' + str(j) + '.jpg'
+            match_img_url = match_imgs[i][j]
+            # Check to see if the file does not exist in filenames. if not, add them (manually matched)
+            if not match_img_name in filenames:
+                fullfilename = os.path.join(foldername, match_img_name)
+                urllib.request.urlretrieve(match_img_url, fullfilename)
+            # Write to the excel sheet
+            worksheet.write('A' + str(count), match_img_name)
+            count += 1
+    workbook.close()
+
+
+
+
+
+
+
+
+
+like_prob = 0.3 #Probability of swiping right
+swipe = False
 authverif()
-for i in range(200):
-    r = get_recommendations()
-    rec_ids, rec_bios, rec_xsmall, rec_small, rec_med, rec_large = process_recs(r)
-    write_rec_data(rec_ids, rec_bios, rec_xsmall, rec_small, rec_med, rec_large)
-print(rec_bios)
-print(rec_med)
+
+
+
+if swipe:
+    for i in range(200):
+        r = get_recommendations()
+        rec_ids, rec_bios, rec_xsmall, rec_small, rec_med, rec_large = process_recs(r)
+        write_rec_data(rec_ids, rec_bios, rec_xsmall, rec_small, rec_med, rec_large)
+
 m = all_matches(count=5)
 ids, xsmall, small, med, large = process_matches(m)
+write_match_data(ids, small)
+

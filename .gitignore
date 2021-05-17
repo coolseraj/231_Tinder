@@ -1,0 +1,11 @@
+proxying.txt
+.py
+api_abstract.py
+*.pyc
+__pycache__
+find.py
+*.log
+*.egg-info
+RawData/
+ProcessedData/
+hymenoptera_data/
