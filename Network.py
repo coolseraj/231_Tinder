@@ -35,6 +35,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
+    best_f1_match = 0.0
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -49,6 +50,9 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
             running_loss = 0.0
             running_corrects = 0
+            running_true_pos_match = 0
+            running_false_neg_match = 0
+            running_false_pos_match = 0
 
             # Iterate over data.
             for inputs, labels in dataloaders[phase]:
@@ -73,18 +77,37 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 # statistics
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
+                # For the match minority class
+                for i in range(len(preds)):
+                    if preds[i] == 0 and labels.data[i] == 0:
+                        running_true_pos_match += 1
+                    if preds[i] == 1 and labels.data[i] == 0:
+                        running_false_neg_match += 1
+                    if preds[i] == 0 and labels.data[i] == 1:
+                        running_false_pos_match += 1
+
             if phase == 'train':
                 scheduler.step()
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
+            # For the match minority class
+            eps = 0.001
+            epoch_precision_match = running_true_pos_match/(running_true_pos_match + running_false_pos_match + eps)
+            epoch_recall_match = running_true_pos_match/(running_true_pos_match + running_false_neg_match + eps)
+            epoch_f1_match = 2 * epoch_precision_match * epoch_recall_match/(epoch_precision_match + epoch_recall_match + eps)
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                phase, epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f} Acc: {:.4f} Precision: {:4f} Recall: {:.4f} F1: {:.4f}'.format(
+                phase, epoch_loss, epoch_acc, epoch_precision_match, epoch_recall_match, epoch_f1_match))
 
             # deep copy the model
-            if phase == 'val' and epoch_acc > best_acc:
-                best_acc = epoch_acc
+
+            #if phase == 'val' and epoch_acc > best_acc:
+            #    best_acc = epoch_acc
+            #    best_model_wts = copy.deepcopy(model.state_dict())
+
+            if phase == 'val' and epoch_f1_match > best_f1_match:
+                best_f1_match = epoch_f1_match
                 best_model_wts = copy.deepcopy(model.state_dict())
 
         print()
@@ -165,15 +188,25 @@ if __name__ == '__main__':
 
     #imshow(out, title=[class_names[x] for x in classes])
 
-    model_ft = models.resnet18(pretrained=True)
+    model_ft = models.resnet18(pretrained=False)
+    #Freezes the other layers
+    freeze_layers = True
+    if freeze_layers:
+        for param in model_ft.parameters():
+            param.requires_grad = False
+
     num_ftrs = model_ft.fc.in_features
     # Here the size of each output sample is set to 2.
     # Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
     model_ft.fc = nn.Linear(num_ftrs, 2)
-
     model_ft = model_ft.to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    #Weight because of imblanaced classes
+    num_match = len(os.listdir('ProcessedData/Train/Match'))
+    num_nomatch = len(os.listdir('ProcessedData/Train/NoMatch'))
+    weights = [1/num_match,  1/num_nomatch]  # [ 1 / number of instances for each class]
+    class_weights = torch.FloatTensor(weights).cuda()
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     # Observe that all parameters are being optimized
     optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
