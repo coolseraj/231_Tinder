@@ -1,7 +1,7 @@
 import os
 from os import listdir
 from os.path import isfile, join
-
+import  PIL
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -15,6 +15,19 @@ mypath = 'RawData'
 percentage_train = 0.8
 percentage_val = 0.1
 percentage_test = 0.1
+
+def augment():
+    dir = 'GANData/RawAndAugmentedData'
+    for f in os.listdir(dir):
+        os.remove(os.path.join(dir, f))
+    dir = 'GANData/RawData'
+    for f in os.listdir(dir):
+        img = PIL.Image.open(dir + '/' + f)
+        flipped_img = img.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+        img.save('GANData/RawAndAugmentedData/' + f)
+        flipped_img.save('GANData/RawAndAugmentedData/Flipped_' + f)
+
+
 
 
 def preprocess_data():
@@ -67,4 +80,7 @@ def preprocess_data():
         except:
             s = 0
 
-preprocess_data()
+#preprocess_data()
+augment()
+
+

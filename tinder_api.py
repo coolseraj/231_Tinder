@@ -402,7 +402,7 @@ def process_matches(matches):
 
 def write_rec_data(ids, bios, xs, s, m, l):
     """Saves the info"""
-    foldername = "RawData/"
+    foldername = "GANData/RawData"
     for i in range(len(ids)):
         id = ids[i]
         img_urls = s[i]
@@ -448,7 +448,7 @@ def write_match_data(match_ids, match_imgs):
 
 
 like_prob = 0.3 #Probability of swiping right
-swipe = False
+swipe = True
 authverif()
 
 

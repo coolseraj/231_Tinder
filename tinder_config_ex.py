@@ -10,6 +10,7 @@ tinder_token = "dc4e6834-fb0a-4af7-9c9b-733c059d35a1"
 tinder_token = 'c8f697a0-2e22-400c-b5cd-02d111a225ee'
 tinder_token = '1e80a6f4-5370-4491-8a20-0edd90f1ed3c'
 tinder_token = 'b5d96cb3-bde8-4c64-8890-eea17cf98114'
+tinder_token = 'b8283edf-1634-4f9b-a244-b0b9ffac85ac'
 
 # Your real  file should simply be named ".py"
 # Just insert your fb_username and fb_password in string format
